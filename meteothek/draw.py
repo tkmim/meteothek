@@ -19,10 +19,11 @@ def set_projection(ax, blat, tlat, llon, rlon):
 def coastline(map):
     # drawing coastlines 
     map.drawcoastlines(color='black', linewidth=0.5)
+    map.drawcountries(linewidth=0.3, linestyle='solid', color='k', antialiased=1, ax=None, zorder=None)
 
     # Drawing grid lines every 5 degrees
-    map.drawmeridians(np.arange(0, 360, 5),  labels=[False, False, False, True], fontsize='small', color='gray', linewidth=0.5)
-    map.drawparallels(np.arange(-90, 90, 5), labels=[True, False, False, False], fontsize='small', color='gray', linewidth=0.5)
+    map.drawmeridians(np.arange(0, 360, 1),  labels=[False, False, False, True], fontsize='small', color='gray', linewidth=0.5)
+    map.drawparallels(np.arange(-90, 90, 1), labels=[True, False, False, False], fontsize='small', color='gray', linewidth=0.5)
 
 
 def shade(map, x, y, data, *, cmap=SCM6.batlow,  extend='both', **kwargs):
@@ -68,9 +69,14 @@ def contour(map, x, y, data, *, levels=-9999, colors="black", linestyles='-',lin
     return contour
 
 
-def vector(map, x, y, u, v, *, skip=10, scale=1.0e-4, legend=True ):
+def vector(map, x, y, u, v, *, skip=10, scale=1.0, legend=True ):
+    scale=scale * 0.0393701
+    # avoid zero division
+    if scale == 0:
+        scale = 0.0393701
+
     arr_skip=(slice(None,None,skip), slice(None,None,skip))
-    vector = map.quiver(x[arr_skip],y[arr_skip],u[arr_skip],v[arr_skip],angles='xy',scale_units='xy',scale=scale)
+    vector = map.quiver(x[arr_skip],y[arr_skip],u[arr_skip],v[arr_skip],angles='xy',scale_units='inches',scale=1/scale)
     if(legend):
         plt.gca().quiverkey(vector, 0.9, 1.05, U=5, label='5 m/s', 
                 labelpos='E', coordinates='axes')
