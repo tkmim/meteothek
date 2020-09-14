@@ -31,13 +31,13 @@ def shade(map, x, y, data, *, cmap=SCM6.batlow,  extend='both', **kwargs):
     levels = kwargs.get('levels', False) 
     colors = kwargs.get('colors', False)
 
-    if 'levels' in locals() and 'colors' in locals():
+    if levels != False and colors != False:
         cmap, norm = util.mkcmap(colors, levels)
 
-    if 'levels' in locals() and 'colors' in locals():
+    if levels != False and colors != False:
         shade = map.contourf(x, y, data, levels, colors=colors, extend=extend)
 
-    elif 'levels' in locals():
+    elif levels != False:
         shade = map.contourf(x, y, data, levels, cmap=cmap, extend=extend)
 
     else:
@@ -49,7 +49,7 @@ def mesh(map, x, y, data, *, cmap=SCM6.batlow, norm=-9999, **kwargs):
     levels = kwargs.get('levels', False) 
     colors = kwargs.get('colors', False)
 
-    if 'colors' in locals():
+    if colors != False:
         cmap, norm = util.mkcmap(colors, levels)
         mesh = map.pcolormesh(x, y, data, cmap=cmap, norm=norm)
     else:
@@ -95,12 +95,9 @@ def title(map, txt, *, loc='left', fontsize=10):
     plt.title(txt, loc=loc, fontsize=fontsize)
 
 def colorbar(fig, cs, position):
-        cax=fig.add_subplot(1,1,1)
+        cax=fig.add_subplot(1,1,1, label='cax')
         cax_pos = [position[0], position[2], 
                 position[1]-position[0], position[3]-position[2]]
         cax.set_position(cax_pos)
         fig.colorbar(cs, cax=cax)
 
-def vector_legend(fig, vector):
-    fig.quiverkey(vector, 0.9, 0.9, U=5, label='$5 \frac{m}{s}$', 
-            labelpos='E', coordinates='figure')
