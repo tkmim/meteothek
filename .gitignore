@@ -3,7 +3,6 @@ venv/
 __pycache__/
 *.py[cod]
 *$py.class
-SCM6/
 old/
 
 # C extensions
