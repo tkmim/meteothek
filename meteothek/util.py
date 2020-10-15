@@ -3,12 +3,31 @@
 """
 
 import numpy as np
+import time
 from matplotlib.colors import LinearSegmentedColormap
 
 
-def date_format(yyyy,mm,dd,hh):
+class timer(object):
+    def __init__(self, name, verbose=True):
+        self.verbose = verbose
+        self.name = name
 
+    def __enter__(self):
+        self.start = time.time()
+        return self
+
+    def __exit__(self, *args):
+        self.end = time.time()
+        self.secs = self.end - self.start
+        self.msecs = self.secs * 1000  # millisecs
+        if self.verbose:
+            print(self.name, ': elapsed time: %f ms' % self.msecs)
+
+
+def date_format(yyyy,mm,dd,hh):
+    """Format date to YYYYMMDDHH"""
     return str('%04d%02d%02d%02d%02d' % yyyy, mm, dd, hh)
+
 
 def mkcmap(colors, levels):
     """Make a color map from listed colours"""
