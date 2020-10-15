@@ -20,8 +20,10 @@ class timer(object):
         self.end = time.time()
         self.secs = self.end - self.start
         self.msecs = self.secs * 1000  # millisecs
-        if self.verbose:
-            print(self.name, ': elapsed time: %f ms' % self.msecs)
+        if self.verbose and self.msecs > 1000 :
+            print(self.name, ': elapsed time: %.3f s' % (self.msecs / 1000.0) )
+        elif self.verbose :
+            print(self.name, ': elapsed time: %.3f ms' % self.msecs)
 
 
 def date_format(yyyy,mm,dd,hh):
