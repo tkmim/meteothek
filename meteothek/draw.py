@@ -50,19 +50,23 @@ def gridlines(map, *, label=True, latint=15, lonint=15):
         map.yaxis.set_major_formatter(latfmt)
 
 
-def shade(map, lons, lats, data, *, cmap=SCM6.batlow, extend='both', projection=proj.Regular_latlon(), **kwargs):
-    
+def shade(map, lons, lats, data, *, cmap=SCM6.batlow, extend='both', **kwargs):
+
     print('Keywords attached: ',*kwargs)
+    kwargs.setdefault("projection", map.projection)
+    
+    # Unfold kwargs
     levels = kwargs.get('levels', False) 
     colors = kwargs.get('colors', False)
+    projection = kwargs.get('projection', False)
 
-    if levels != False and colors != False:
-        cmap, norm = util.mkcmap(colors, levels)
+    if colors != False:
+        cmap = util.mkcmap(colors)
 
-    if levels != False and colors != False:
-        shade = map.contourf(lons, lats, data, levels, colors=colors, extend=extend, transform=projection)
+    if levels != False:
+        cmap = util.nlcmap(cmap, levels)
 
-    elif levels != False:
+    if levels != False:
         shade = map.contourf(lons, lats, data, levels, cmap=cmap, extend=extend, transform=projection)
 
     else:
@@ -71,15 +75,25 @@ def shade(map, lons, lats, data, *, cmap=SCM6.batlow, extend='both', projection=
     return shade
 
 
-def mesh(map, lons, lats, data, *, cmap=SCM6.batlow, norm=-9999, **kwargs):
-    levels = kwargs.get('levels', False) 
-    colors = kwargs.get('colors', False)
+def mesh(map, lons, lats, data, *, cmap=SCM6.batlow, **kwargs):
+    
+    print('Keywords attached: ',*kwargs)
+    kwargs.setdefault("projection", map.projection)
+    
+    # Unfold kwargs
+    #colors = kwargs.get('colors', False)
+    #levels = kwargs.get('levels', False) 
+    projection = kwargs.get('projection', False)
+    
+    # User specified discontinuous colourbar is omitted.
+    # Use draw.shade for it
+    #if colors != False:
+    #    cmap = util.mkcmap(colors)
+    #    
+    #if levels != False:
+    #    cmap = util.nlcmap(cmap, levels)        
 
-    if colors != False:
-        cmap, norm = util.mkcmap(colors, levels)
-        mesh = map.pcolormesh(lons, lats, data, cmap=cmap, norm=norm)
-    else:
-        mesh = map.pcolormesh(lons, lats, data, cmap=cmap)
+    mesh = map.pcolormesh(lons, lats, data, cmap=cmap, transform=projection)
 
     return mesh
 
