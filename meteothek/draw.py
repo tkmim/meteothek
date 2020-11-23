@@ -5,28 +5,53 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
+import matplotlib.ticker as mticker
+
 import SCM6
-from . import util
+from . import util, proj
+
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+from cartopy.mpl.ticker import LatitudeFormatter,LongitudeFormatter
+
+def coastline(map, *, coast_lw=0.5, border_lw=0.3 ):
+    
+    # draw coastlines 
+    map.add_feature(cfeature.COASTLINE, edgecolor='black', linewidth=coast_lw)
+    map.add_feature(cfeature.BORDERS, linewidth=border_lw)
+
+    
+def gridlines(map, *, label=True, latint=15, lonint=15):
+
+    gl = map.gridlines(crs=map.projection, draw_labels=False, 
+                  x_inline=False, 
+                  y_inline=False)
+
+    # define gridline intervals
+    xticks=np.arange(-180.0, 360.1, lonint)
+    yticks=np.arange(-90,90.1, latint)
+    gl.xlocator = mticker.FixedLocator(xticks) 
+    gl.ylocator = mticker.FixedLocator(yticks)
+
+    if label == True:
+        
+        # draw labels
+        map.set_xticks(xticks,crs=map.projection)
+        map.set_yticks(yticks,crs=map.projection)
 
 
-def set_projection(ax, blat, tlat, llon, rlon):
-    map = Basemap( projection='lcc', resolution="i", lat_0=30.0, lon_0=140.0,lat_1=30, lat_2=60, fix_aspect=(1,1), llcrnrlat=blat, urcrnrlat=tlat, llcrnrlon=llon, urcrnrlon=rlon)
+        lonfmt = LongitudeFormatter(number_format='.1f',
+                                           degree_symbol='',
+                                           dateline_direction_label=True)
+        latfmt = LatitudeFormatter(number_format='.1f',
+                                          degree_symbol='')
 
-    #map = plt.axes(projection=ccrs.LambertConformal(central_longitude=140, central_latitude=40, standard_parrallels=(30,60)))
-    return map
-
-def coastline(map):
-    # drawing coastlines 
-    map.drawcoastlines(color='black', linewidth=0.5)
-    map.drawcountries(linewidth=0.3, linestyle='solid', color='k', antialiased=1, ax=None, zorder=None)
-
-    # Drawing grid lines every 5 degrees
-    map.drawmeridians(np.arange(0, 360, 1),  labels=[False, False, False, True], fontsize='small', color='gray', linewidth=0.5)
-    map.drawparallels(np.arange(-90, 90, 1), labels=[True, False, False, False], fontsize='small', color='gray', linewidth=0.5)
+        map.xaxis.set_major_formatter(lonfmt)
+        map.yaxis.set_major_formatter(latfmt)
 
 
-def shade(map, x, y, data, *, cmap=SCM6.batlow,  extend='both', **kwargs):
+def shade(map, lons, lats, data, *, cmap=SCM6.batlow, extend='both', projection=proj.Regular_latlon(), **kwargs):
+    
     print('Keywords attached: ',*kwargs)
     levels = kwargs.get('levels', False) 
     colors = kwargs.get('colors', False)
@@ -35,48 +60,51 @@ def shade(map, x, y, data, *, cmap=SCM6.batlow,  extend='both', **kwargs):
         cmap, norm = util.mkcmap(colors, levels)
 
     if levels != False and colors != False:
-        shade = map.contourf(x, y, data, levels, colors=colors, extend=extend)
+        shade = map.contourf(lons, lats, data, levels, colors=colors, extend=extend, transform=projection)
 
     elif levels != False:
-        shade = map.contourf(x, y, data, levels, cmap=cmap, extend=extend)
+        shade = map.contourf(lons, lats, data, levels, cmap=cmap, extend=extend, transform=projection)
 
     else:
-        shade = map.contourf(x, y, data, cmap=cmap, extend=extend)
+        shade = map.contourf(lons, lats, data, transform=projection, cmap=cmap, extend=extend)
 
     return shade
 
-def mesh(map, x, y, data, *, cmap=SCM6.batlow, norm=-9999, **kwargs):
+
+def mesh(map, lons, lats, data, *, cmap=SCM6.batlow, norm=-9999, **kwargs):
     levels = kwargs.get('levels', False) 
     colors = kwargs.get('colors', False)
 
     if colors != False:
         cmap, norm = util.mkcmap(colors, levels)
-        mesh = map.pcolormesh(x, y, data, cmap=cmap, norm=norm)
+        mesh = map.pcolormesh(lons, lats, data, cmap=cmap, norm=norm)
     else:
-        mesh = map.pcolormesh(x, y, data, cmap=cmap)
+        mesh = map.pcolormesh(lons, lats, data, cmap=cmap)
 
     return mesh
 
 
-def contour(map, x, y, data, *, levels=-9999, colors="black", linestyles='-',linewidths=0.5):
+def contour(map, lons, lats, data, *, levels=-9999, colors="black", linestyles='-',linewidths=0.5):
 
     if levels == -9999:
         levels=np.linspace(np.min(data), np.max(data), 6)
 
-    contour = map.contour(x, y, data, colors=colors, linestyles=linestyles, linewidths=linewidths, levels=levels)
+    contour = map.contour(lons, lats, data, colors=colors, linestyles=linestyles, linewidths=linewidths, levels=levels)
     contour.clabel(fmt='%1.1f', fontsize=8)
 
     return contour
 
 
-def vector(map, x, y, u, v, *, skip=10, scale=1.0, legend=True ):
+def vector(map, lons, lats, u, v, *, skip=10, scale=1.0, legend=True ):
     scale=scale * 0.0393701
     # avoid zero division
     if scale == 0:
         scale = 0.0393701
 
     arr_skip=(slice(None,None,skip), slice(None,None,skip))
-    vector = map.quiver(x[arr_skip],y[arr_skip],u[arr_skip],v[arr_skip],angles='xy',scale_units='inches',scale=1/scale)
+    vector = map.quiver(lons[arr_skip], lats[arr_skip], u[arr_skip], v[arr_skip],
+                        angles='xy', scale_units='inches', scale=1/scale)
+    
     if(legend):
         plt.gca().quiverkey(vector, 0.9, 1.05, U=5, label='5 m/s', 
                 labelpos='E', coordinates='axes')
@@ -85,11 +113,13 @@ def vector(map, x, y, u, v, *, skip=10, scale=1.0, legend=True ):
 def barb(map,x,y,u,v):
     pass
 
-def point(map, x, y, *, marker="o", markersize=10):
-    map.plot(x, y, marker=marker, markersize=markersize)
+def point(map, lons, lats, *, marker="o", markersize=10, color='blue'):
+    map.plot(lons, lats, marker=marker, markersize=markersize, color=color)
 
-def text(map, x, y, string, *, size=20, color="black"):
-    plt.text(x, y, string, size=size, color=color)
+def text(map, lons, lats, string, *, size=20, color="black"):
+    
+    map.text(lons, lats, string, size=size, color=color,
+            transform=ccrs.Geodetic()._as_mpl_transform(map))
 
 def title(map, txt, *, loc='left', fontsize=10):
     plt.title(txt, loc=loc, fontsize=fontsize)
