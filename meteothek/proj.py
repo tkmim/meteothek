@@ -10,11 +10,11 @@ def Regular_latlon():
     return ccrs.PlateCarree()
 
 def Lambert_MSM_JP():
-    return ccrs.LambertConformal(central_longitude=140, central_latitude=40, standard_parrallels=(30,60))
+    return ccrs.LambertConformal(central_longitude=140, central_latitude=40, standard_parallels=(30,60))
 
 def Lambert_D2_DE():
-    return ccrs.LambertConformal(central_longitude=10, central_latitude=52, standard_parrallels=(35,65))
+    return ccrs.LambertConformal(central_longitude=10, central_latitude=51, standard_parallels=(48,53))
 
 def Rotated_DE():
-    return ccrs.RotatedPole(pole_latitude=-40, pole_longitude=170)
+    return ccrs.RotatedPole(pole_latitude=40, pole_longitude=-170)
 
