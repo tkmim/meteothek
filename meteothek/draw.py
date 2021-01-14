@@ -23,36 +23,30 @@ def coastline(map, *, coast_lw=0.5, border_lw=0.3 ):
     
 def gridlines(map, *, label=True, latint=15, lonint=15):
 
-    gl = map.gridlines(crs=map.projection, draw_labels=False, 
-                  x_inline=False, 
-                  y_inline=False)
 
     # define gridline intervals
     xticks=np.arange(-180.0, 360.1, lonint)
     yticks=np.arange(-90,90.1, latint)
-    gl.xlocator = mticker.FixedLocator(xticks) 
-    gl.ylocator = mticker.FixedLocator(yticks)
-
-    if label == True:
-        
-        # draw labels
-        map.set_xticks(xticks,crs=map.projection)
-        map.set_yticks(yticks,crs=map.projection)
-
-
-        lonfmt = LongitudeFormatter(number_format='.1f',
+    #gl.xlocator = mticker.FixedLocator(xticks) 
+    #gl.ylocator = mticker.FixedLocator(yticks)
+    
+    lonfmt = LongitudeFormatter(number_format='.1f',
                                            degree_symbol='',
                                            dateline_direction_label=True)
-        latfmt = LatitudeFormatter(number_format='.1f',
+    latfmt = LatitudeFormatter(number_format='.1f',
                                           degree_symbol='')
-
-        map.xaxis.set_major_formatter(lonfmt)
-        map.yaxis.set_major_formatter(latfmt)
-
+    
+    gl = map.gridlines(draw_labels=label,
+                xlocs=xticks, ylocs=yticks,
+                xformatter=lonfmt, yformatter=latfmt,
+                x_inline=False, y_inline=False)
+    
+    gl.top_labels = gl.right_labels = False
+        
 
 def shade(map, lons, lats, data, *, cmap=SCM6.batlow, extend='both', **kwargs):
 
-    print('Keywords attached: ',*kwargs)
+    print('draw.shade: keywords attached: ',*kwargs)
     kwargs.setdefault("projection", map.projection)
     
     # Unfold kwargs
@@ -70,7 +64,7 @@ def shade(map, lons, lats, data, *, cmap=SCM6.batlow, extend='both', **kwargs):
         shade = map.contourf(lons, lats, data, levels, cmap=cmap, extend=extend, transform=projection)
 
     else:
-        shade = map.contourf(lons, lats, data, transform=projection, cmap=cmap, extend=extend)
+        shade = map.contourf(lons, lats, data, cmap=cmap, extend=extend, transform=projection)
 
     return shade
 
