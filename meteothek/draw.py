@@ -92,12 +92,15 @@ def mesh(map, lons, lats, data, *, cmap=SCM6.batlow, **kwargs):
     return mesh
 
 
-def contour(map, lons, lats, data, *, levels=-9999, colors="black", linestyles='-',linewidths=0.5, **kwargs):
+def contour(map, lons, lats, data, *, levels=False, colors="black", linestyles='-',linewidths=0.5, **kwargs):
 
-    print('Keywords attached: ',*kwargs)
+    print('draw.contour: Keywords attached: ',*kwargs)
     kwargs.setdefault("projection", map.projection)
     
-    if levels == -9999:
+    # Unfold kwargs
+    projection = kwargs.get('projection', False)    
+
+    if type(levels) is bool and levels == False:
         levels=np.linspace(np.min(data), np.max(data), 6)
 
     contour = map.contour(lons, lats, data, colors=colors, linestyles=linestyles, linewidths=linewidths, levels=levels,
