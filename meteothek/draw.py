@@ -107,7 +107,7 @@ def contour(ax, lons, lats, data, *, colors="black",
     if 'levels' in kwargs:
         keywords['levels'] = kwargs['levels']
     else:
-        keywords['levels'] = levels=np.linspace(np.min(data), np.max(data), 6)
+        keywords['levels'] = np.linspace(np.min(data), np.max(data), 6)
         
     contour = ax.contour(lons, lats, data, colors=colors, linestyles=linestyles, linewidths=linewidth,
                          transform=projection, **keywords)

@@ -1,12 +1,23 @@
 # -*- coding: utf-8 -*-
 """
 """
-
+import sys
 import numpy as np
 import time
+
 from scipy import signal
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
+
+
+#:
+#:   Logging and debugging 
+#:
+
+def flush():
+    """Flush standard outputs"""
+    sys.stdout.flush()
+    
 class timer(object):
     """ Timer """
     def __init__(self, name, verbose=True):
@@ -26,19 +37,16 @@ class timer(object):
         elif self.verbose :
             print(self.name, ': elapsed time: %.3f ms' % self.msecs)
 
-def flush():
-    """Flush standard outputs to an external file"""
-    import sys
-    sys.stdout.flush()
-
-def date_to_ymdh(yyyy,mm,dd,hh):
-    """Format date to YYYYMMDDHH"""
-    return str('%04d%02d%02d%02d%02d' % yyyy, mm, dd, hh)
 
 
-def mkcmap(colors):
-    """Make a color map from listed colours"""
-    cmap = ListedColormap(colors, name="custom")        
+
+#:
+#:   Colormap
+#:
+
+def mkcmap(colors, name="custom"):
+    """Make a colormap from colours as a list object"""
+    cmap = ListedColormap(colors, name=name)        
 
     return cmap
 
@@ -46,6 +54,8 @@ def mkcmap(colors):
 class nlcmap(LinearSegmentedColormap):
     """
     Make a nonlinear colormap from given Colormap
+    
+    *** Currently deprecated ***
     
     Usage: nlcmap = util.nlcmap(cmap, levels)
     """
@@ -63,16 +73,20 @@ class nlcmap(LinearSegmentedColormap):
         yi = np.interp(xi, self._x, self._y)
         return self.cmap(yi, alpha)
 
-    
+
+#:
+#:   Scientific computing
+#:
+
 def fss(fcst, obs, threshold, window, thrsd_type):
     """
-    Compute the fraction skill score using convolution.
+    Compute the fraction skill score (Roberts and Lean, 2008) using convolution.
     :param fcst: nd-array, forecast field.
     :param obs: nd-array, observation field.
     :param window: integer, window size.
     :param thrsd_type: character, "accumulation" or "percentile"
     
-    :return: tuple of FSS numerator, denominator and score.
+    :return: tuple, (FSS numerator, denominator and score)
     """
     def fourier_filter(field, n):
         return signal.fftconvolve(field, np.ones((n, n)))
@@ -95,3 +109,21 @@ def fss(fcst, obs, threshold, window, thrsd_type):
 
     return num, denom, 1. - num / denom
     
+
+    
+#:
+#:   Miscellaneous
+#:   
+
+def show_stats(array, name="numpy.ndarray"):
+    if type(array).__module__ != "numpy":
+        sys.exit("Error: util.show_stat: not a numpy array")
+    
+    print('Stats of %s' % name)
+    print('    ndim, shape', array.ndim, array.shape)
+    print('    max, mean, min', np.max(array), np.mean(array), np.min(array))
+    print('    nanmax, nanmean, nanmin', np.nanmax(array), np.nanmean(array), np.nanmin(array))
+
+def date_to_ymdh(yyyy,mm,dd,hh):
+    """Format date (year, month, day, hour) to YYYYMMDDHH"""
+    return str('%04d%02d%02d%02d%02d' % yyyy, mm, dd, hh)
