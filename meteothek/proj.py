@@ -7,6 +7,7 @@ from . import util
 import cartopy.crs as ccrs
 
 def Regular_latlon():
+    # somewhat this returned projection obejct does not work with 'transform' cartopy option. In that case, use ccrs.PlateCarree() directly in a plotting code.
     return ccrs.PlateCarree()
 
 def Lambert_MSM_JP():
