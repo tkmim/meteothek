@@ -48,7 +48,7 @@ def gridlines(ax, *, label=True, latint=15, lonint=15, linewidth=1.0):
 
 def shade(ax, lons, lats, data, *, cmap=SCM6.batlow, extend='both', **kwargs):
 
-    print('draw.shade: keywords attached: ',*kwargs)
+    print('draw.shade: keywords attached: ', *kwargs)
     kwargs.setdefault("projection", ax.projection)
     projection = kwargs.get('projection', False)
     
@@ -73,7 +73,7 @@ def shade(ax, lons, lats, data, *, cmap=SCM6.batlow, extend='both', **kwargs):
 
 def mesh(ax, lons, lats, data, *, cmap=SCM6.batlow, **kwargs):
     
-    print('draw.mesh: keywords attached: ',*kwargs)
+    print('draw.mesh: keywords attached: ', *kwargs)
     kwargs.setdefault("projection", ax.projection)
     projection = kwargs.get('projection', False)
     
@@ -168,11 +168,11 @@ def title(ax, txt, *, loc='left', fontsize=10):
     plt.title(txt, loc=loc, fontsize=fontsize)
 
     
-def colorbar(fig, cs, position, orientation='vertical', ticks=False):
+def colorbar(fig, cs, position, orientation='vertical', ticks=False, **kwargs ):
     """
     param: position: [ left, right, bottom, top] #values between 0.0-1.0
     """
-    keywords = {}
+    keywords = kwargs
     if ticks is not False:
         keywords['ticks'] = ticks
          
@@ -180,8 +180,9 @@ def colorbar(fig, cs, position, orientation='vertical', ticks=False):
     cax_pos = [position[0], position[2], 
         position[1]-position[0], position[3]-position[2]]
     cax.set_position(cax_pos)
-    fig.colorbar(cs, cax=cax, orientation=orientation, **keywords)
-
+    cbar=fig.colorbar(cs, cax=cax, orientation=orientation, **keywords)
+    
+    return cax
     
 def add_subplot_axes(ax, rect, *, facecolor='w'):
     """

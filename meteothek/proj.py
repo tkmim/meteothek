@@ -19,3 +19,9 @@ def Lambert_D2_DE():
 def Rotated_DE():
     return ccrs.RotatedPole(pole_latitude=40, pole_longitude=-170)
 
+def PolarStereo_DE():
+    return ccrs.Stereographic(true_scale_latitude=60., central_latitude=90.,central_longitude=10.)
+
+def Geodetic():
+    return ccrs.Geodetic()
+
