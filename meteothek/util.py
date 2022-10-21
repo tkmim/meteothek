@@ -4,8 +4,8 @@
 import sys
 import numpy as np
 import time
-
 from scipy import signal
+from scipy.fft import fft, ifft, dct, idct
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 
@@ -80,16 +80,93 @@ class nlcmap(LinearSegmentedColormap):
 
 def fss(fcst, obs, threshold, window, thrsd_type):
     """
-    Compute the fraction skill score (Roberts and Lean, 2008) using convolution.
-    :param fcst: nd-array, forecast field.
-    :param obs: nd-array, observation field.
-    :param window: integer, window size.
-    :param thrsd_type: character, "accumulation" or "percentile"
+    Compute fractions skill score (FSS; Roberts and Lean, 2008) using convolution.
+    Implementation based on Faggian et al. (2015, doi: 10.54302/mausam.v66i3.555)
     
-    :return: tuple, (FSS numerator, denominator and score)
+    
+    Parameters
+    ----------
+    fcst : nd-array, 
+        forecast field
+    obs : nd-array, 
+        observation field
+    window : integer, 
+        neighbourhood window size
+    thrsd_type : character, 
+        "accumulation" or "percentile"
+    
+    Returns
+    -------
+    FSS : tuple, (FSS numerator, denominator, score)
+    
     """
+    
     def fourier_filter(field, n):
-        return signal.fftconvolve(field, np.ones((n, n)))
+        '''A wrapper function for making 2D Fourier filter convolution
+
+        Parameter
+        ---------
+        field : 2d nd-darray, 
+            a field be convoluted.
+        n : integer,
+            a size of the kernel for FFT convolution
+
+        Returns
+        -------
+        result : 2d nd-array, convolution
+        '''
+        
+        def convolve2DFFT(field, kernel, max_missing=0.25, verbose=False):
+            '''2D FFT convolution with NaN
+            
+            Parameter
+            ---------
+            field : 2d nd-darray, 
+                a field be convoluted.
+            kernel : 2d nd-array, 
+                convolution kernel.
+            max_missing : scalar, real, default = 0.25 
+                max tolerable fraction of missings within a convolution window.
+                e.g. if <max_missing> is 0.55, when over 55% of values within a given 
+                convolution window are missing, the center will be set as missing. 
+                If only 40% is missing, the center value will be computed using the 
+                remaining 60% data in the window.
+                NOTE: out-of-bound grids are counted as missings, this is different 
+                from convolve2D(), where the number of valid values at edges drops 
+                as the kernel approaches the edge.
+            verbose : boolean, optional, currently not used
+                
+            Returns
+            -------
+            result : 2d nd-array, convolution.
+            '''
+            
+            assert np.ndim(field)==2, "<field> needs to be 2D."
+            assert np.ndim(kernel)==2, "<kernel> needs to be 2D."
+            assert kernel.shape[0]<=field.shape[0], "<kernel> size needs to <= <field> size."
+            assert kernel.shape[1]<=field.shape[1], "<kernel> size needs to <= <field> size."
+            
+            #--------------Get mask for missings--------------
+            # Make an NaN/Valid field (Valid =1, Nan=0)
+            fieldcount=1-np.isnan(field) 
+            # Binarisation of the kernel (usually do nothing)
+            kernelcount=np.where(kernel==0, 0, 1) 
+            # Make a convolution of 'Valid' grid points 
+            result_mask=signal.fftconvolve(fieldcount,kernelcount) #,mode='same') 
+            
+            # Calculate the number of grid points working as the threshold for valid convoluted grid points 
+            valid_threshold=(1.-max_missing)*np.sum(kernelcount) 
+            
+            # Set np.nan to a float to avoid getting nan in the convlutions
+            field=np.where(fieldcount==1,field,0)
+
+            # Make a convolution and masking the result by <result_mask>
+            result=signal.fftconvolve(field,kernel) #,mode='same')
+            result=np.where(result_mask>=valid_threshold, result, np.nan) #
+            
+            return result
+        
+        return convolve2DFFT(field, np.ones((n, n)))
 
     # Obtain the thresholds
     if thrsd_type == 'accumulation':
@@ -99,17 +176,89 @@ def fss(fcst, obs, threshold, window, thrsd_type):
         thresh_fx = np.nanpercentile(fcst, threshold)
         thresh_obs = np.nanpercentile(obs, threshold)
     else:
-        exit("Invalid FSS threshold type: select \"accumulation\" or \"percentile\" ")
+        # if thrsd_type is neither 'accumulation' nor 'percentile'
+        raise Exception("Invalid FSS threshold type: select \"accumulation\" or \"percentile\" ")
 
-    fhat = fourier_filter(fcst > thresh_fx, window)
-    ohat = fourier_filter(obs > thresh_obs, window)
-
+    # Make a nan mask
+    fmask = np.where(~np.isnan(fcst), 1, np.nan)
+    omask = np.where(~np.isnan(obs), 1, np.nan)
+    
+    if window > 1:
+        fhat = fourier_filter((fcst > thresh_fx)*fmask, window)
+        ohat = fourier_filter((obs > thresh_obs)*omask, window)
+    else:
+        fhat = (fcst > thresh_fx)*fmask
+        ohat = (obs > thresh_obs)*omask
+        
     num = np.nanmean(np.power(fhat - ohat, 2))
     denom = np.nanmean(np.power(fhat, 2) + np.power(ohat, 2))
 
+    # return numerator, denominator, and FSS value
     return num, denom, 1. - num / denom
     
 
+
+
+def calc_ke_dct(u, v, trunc=None, type=2):
+    """
+    Compute spectral decomposition of kinetic energy using DCT (Denis et al. 2002, MWR)
+    
+    :param u: 2d-array, zonal wind field
+    :param v: 2d-array, meridional wind field
+    :param trunc: optional, integer, wave number for rhomboidal trunctation
+    :param type:  optional, integer, computational method of DCT (default: 2)
+    
+    :return: kk[trunc, trunc]: 2d-array, rounded total wavenumber
+    :return: Ek[trunc, trunc]: 2d-array, kinetic energy
+    """
+    uk = dct(dct(u, axis=0, type=type, norm='ortho'), axis=1, type=type, norm='ortho')
+    vk = dct(dct(v, axis=0, type=type, norm='ortho'), axis=1, type=type, norm='ortho')
+    
+    Nm = uk.shape[0]
+    Nn = uk.shape[1]
+    
+    kk = np.rint(np.sqrt( np.power(np.arange(Nm).reshape(Nm, 1),2) + np.power(np.arange(Nn).reshape(1, Nn),2)))
+    Ek = (uk * uk + vk * vk ) * 0.5 
+    
+    return kk[:trunc, :trunc], Ek[:trunc, :trunc]
+    
+def calc_te_dct(u, v, trunc=None, type=2):
+    """
+    Compute spectral decomposition of total energy using DCT (Denis et al. 2002, MWR)
+    
+    :param u: 2d-array, zonal wind field
+    :param v: 2d-array, meridional wind field
+    :param t: 2d-array, temperature field
+    :param trunc: optional, integer, wave number for rhomboidal trunctation
+    :param type:  optional, integer, computational method of DCT (default: 2)
+    
+    :return: kk[N]: 1d-array, total wavenumber
+    :return: Ek[4,N]: 1d-array, [total energy, zonal wind energy, meridional wind energy, temperature term]
+    """
+    uk = dct(dct(u, axis=0, type=type, norm='ortho'), axis=1, type=type, norm='ortho')
+    vk = dct(dct(v, axis=0, type=type, norm='ortho'), axis=1, type=type, norm='ortho')
+    tk = dct(dct(dt, axis=0, type=type, norm='ortho'), axis=1, type=type, norm='ortho')
+    
+    # truncation
+    uk = uk[:trunc, :trunc]
+    vk = vk[:trunc, :trunc]
+    tk = tk[:trunc, :trunc]
+    
+    Nm = uk.shape[0]
+    Nn = uk.shape[1]
+    
+    kk = np.rint(np.sqrt( np.power(np.arange(Nm).reshape(Nm, 1),2) + np.power(np.arange(Nn).reshape(1, Nn),2)))
+    kes = np.sort(np.unique(kk))
+    
+    Ek = np.zeros((4, kes.shape[0]))
+
+    Ek[0,:] = np.array([np.nansum(np.where(kk == ii, (uk * uk + vk * vk + 1004.0 / 287.0 * tk * tk ) * 0.5, np.nan)) for ii in kes])
+    Ek[1,:] = np.array([np.nansum(np.where(kk == ii, (uk * uk) * 0.5, np.nan)) for ii in kes])
+    Ek[2,:] = np.array([np.nansum(np.where(kk == ii, (vk * vk) * 0.5, np.nan)) for ii in kes])
+    Ek[3,:] = np.array([np.nansum(np.where(kk == ii, (1004.0 / 287.0 * tk * tk ) * 0.5, np.nan)) for ii in kes])
+
+    
+    return kes, Ek 
     
 #:
 #:   Miscellaneous
