@@ -9,7 +9,6 @@ from scipy.fft import fft, ifft, dct, idct
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 
-
 #:
 #:   Logging and debugging 
 #:
@@ -34,10 +33,10 @@ class timer(object):
         self.msecs = self.secs * 1000  # millisecs
         if self.verbose and self.msecs > 1000 :
             print(self.name, ': elapsed time: %.3f s' % (self.msecs / 1000.0) )
+        if self.verbose and self.msecs > 1000 * 60 :
+            print(self.name, ': elapsed time: %.3f min' % (self.msecs / 60000.0) )
         elif self.verbose :
             print(self.name, ': elapsed time: %.3f ms' % self.msecs)
-
-
 
 
 #:
@@ -78,7 +77,75 @@ class nlcmap(LinearSegmentedColormap):
 #:   Scientific computing
 #:
 
-def fss(fcst, obs, threshold, window, thrsd_type):
+def fourier_filter(field, n, max_missing=0.25):
+    '''A wrapper function for making 2D Fourier filter convolution
+
+    Parameter
+    ---------
+    field : 2d nd-darray, 
+        a field be convoluted.
+    n : integer,
+        a size of the kernel for FFT convolution
+
+    Returns
+    -------
+    result : 2d nd-array, convolution
+    '''
+
+    def convolve2DFFT(field, kernel, max_missing=0.25, verbose=False):
+        '''2D FFT convolution with NaN
+
+        Parameter
+        ---------
+        field : 2d nd-darray, 
+            a field be convoluted.
+        kernel : 2d nd-array, 
+            convolution kernel.
+        max_missing : float, default = 0.25 
+            max tolerable fraction of missings within a convolution window.
+            e.g. if <max_missing> is 0.55, when over 55% of values within a given 
+            convolution window are missing, the center will be set as missing. 
+            If only 40% is missing, the center value will be computed using the 
+            remaining 60% data in the window.
+            NOTE: out-of-bound grids are counted as missings, this is different 
+            from convolve2D(), where the number of valid values at edges drops 
+            as the kernel approaches the edge.
+        verbose : boolean, optional, currently not used
+
+        Returns
+        -------
+        result : 2d nd-array, convolution.
+        '''
+
+        assert np.ndim(field)==2, "<field> needs to be 2D."
+        assert np.ndim(kernel)==2, "<kernel> needs to be 2D."
+        assert kernel.shape[0]<=field.shape[0], "<kernel> size needs to <= <field> size."
+        assert kernel.shape[1]<=field.shape[1], "<kernel> size needs to <= <field> size."
+
+        #--------------Get mask for missings--------------
+        # Make an NaN/Valid field (Valid =1, Nan=0)
+        fieldcount=1-np.isnan(field) 
+        # Binarisation of the kernel (usually do nothing)
+        kernelcount=np.where(kernel==0, 0, 1) 
+        # Make a convolution of 'Valid' grid points 
+        # Note: mode='same' or 'full' does not affect FSS calculation
+        result_mask=signal.fftconvolve(fieldcount,kernelcount, mode='same') 
+
+        # Calculate the number of grid points working as the threshold for valid convoluted grid points 
+        valid_threshold=(1.-max_missing)*np.sum(kernelcount) 
+
+        # Set np.nan to a float to avoid getting nan in the convlutions
+        field=np.where(fieldcount==1,field,0)
+
+        # Make a convolution and masking the result by <result_mask>
+        result=signal.fftconvolve(field,kernel, mode='same')
+        result=np.where(result_mask>=valid_threshold, result, np.nan) #
+
+        return result
+
+    return convolve2DFFT(field, np.ones((n, n)), max_missing)
+    
+def fss(fcst, obs, threshold, window, thrsd_type, max_missing=0.25):
     """
     Compute fractions skill score (FSS; Roberts and Lean, 2008) using convolution.
     Implementation based on Faggian et al. (2015, doi: 10.54302/mausam.v66i3.555)
@@ -86,87 +153,27 @@ def fss(fcst, obs, threshold, window, thrsd_type):
     
     Parameters
     ----------
-    fcst : nd-array, 
+    fcst : 2d nd-array, 
         forecast field
-    obs : nd-array, 
+    obs : 2d nd-array, 
         observation field
     window : integer, 
         neighbourhood window size
     thrsd_type : character, 
         "accumulation" or "percentile"
+    max_missing : float, optional
+        max tolerable fraction of missings within a convolution window.
+        The default is 0.25. 
     
     Returns
     -------
     FSS : tuple, (FSS numerator, denominator, score)
     
     """
-    
-    def fourier_filter(field, n):
-        '''A wrapper function for making 2D Fourier filter convolution
 
-        Parameter
-        ---------
-        field : 2d nd-darray, 
-            a field be convoluted.
-        n : integer,
-            a size of the kernel for FFT convolution
-
-        Returns
-        -------
-        result : 2d nd-array, convolution
-        '''
-        
-        def convolve2DFFT(field, kernel, max_missing=0.25, verbose=False):
-            '''2D FFT convolution with NaN
-            
-            Parameter
-            ---------
-            field : 2d nd-darray, 
-                a field be convoluted.
-            kernel : 2d nd-array, 
-                convolution kernel.
-            max_missing : scalar, real, default = 0.25 
-                max tolerable fraction of missings within a convolution window.
-                e.g. if <max_missing> is 0.55, when over 55% of values within a given 
-                convolution window are missing, the center will be set as missing. 
-                If only 40% is missing, the center value will be computed using the 
-                remaining 60% data in the window.
-                NOTE: out-of-bound grids are counted as missings, this is different 
-                from convolve2D(), where the number of valid values at edges drops 
-                as the kernel approaches the edge.
-            verbose : boolean, optional, currently not used
-                
-            Returns
-            -------
-            result : 2d nd-array, convolution.
-            '''
-            
-            assert np.ndim(field)==2, "<field> needs to be 2D."
-            assert np.ndim(kernel)==2, "<kernel> needs to be 2D."
-            assert kernel.shape[0]<=field.shape[0], "<kernel> size needs to <= <field> size."
-            assert kernel.shape[1]<=field.shape[1], "<kernel> size needs to <= <field> size."
-            
-            #--------------Get mask for missings--------------
-            # Make an NaN/Valid field (Valid =1, Nan=0)
-            fieldcount=1-np.isnan(field) 
-            # Binarisation of the kernel (usually do nothing)
-            kernelcount=np.where(kernel==0, 0, 1) 
-            # Make a convolution of 'Valid' grid points 
-            result_mask=signal.fftconvolve(fieldcount,kernelcount) #,mode='same') 
-            
-            # Calculate the number of grid points working as the threshold for valid convoluted grid points 
-            valid_threshold=(1.-max_missing)*np.sum(kernelcount) 
-            
-            # Set np.nan to a float to avoid getting nan in the convlutions
-            field=np.where(fieldcount==1,field,0)
-
-            # Make a convolution and masking the result by <result_mask>
-            result=signal.fftconvolve(field,kernel) #,mode='same')
-            result=np.where(result_mask>=valid_threshold, result, np.nan) #
-            
-            return result
-        
-        return convolve2DFFT(field, np.ones((n, n)))
+    assert np.ndim(fcst)==2, "<fcst> needs to be 2D."
+    assert np.ndim(obs)==2, "<obs> needs to be 2D."
+    assert fcst.shape == obs.shape, "<fcst> size must be equal to <obs> size."
 
     # Obtain the thresholds
     if thrsd_type == 'accumulation':
@@ -195,7 +202,65 @@ def fss(fcst, obs, threshold, window, thrsd_type):
 
     # return numerator, denominator, and FSS value
     return num, denom, 1. - num / denom
+
+
+def AS(fcst, obs, Slim=np.nan, alpha=0.5):
+    """
+    Compute the agreement scales (AS; Dey et al. 2016) using convolution.
     
+    Parameters
+    ----------
+    fcst : 2d nd-array, 
+        forecast field. Size must be identical to <obs>.
+    obs : 2d nd-array, 
+        observation field. Size must be identical to <fcst>.
+    Slim : integer, 
+        Maximum scale (the number of grid points), of which scale of smoothing
+        always two compared grid points are well agreed.
+    alpha : float, optional
+        max tolerable fraction of missings within a convolution window.
+        The default is 0.5. 
+    
+    Returns
+    -------
+    Agreement Scales : 2d nd-array,
+        Agreement scales
+    """
+
+    assert np.ndim(fcst)==2, "<fcst> needs to be 2D."
+    assert np.ndim(obs)==2, "<obs> needs to be 2D."
+    assert fcst.shape == obs.shape, "<fcst> size must be equal to <obs> size."
+    assert np.ndim(Slim) < 2, "<Slim> needs to be a scalar."
+
+    Agreement_Scales = np.ones(fcst.shape) * np.nan
+
+    # If S_lim is not given, S_lim is set to the maximum possible value fits the given 2D field
+    if np.isnan(Slim):
+        Slim = np.floor((np.max(fcst.shape) - 1) * 0.5).astype(np.int32)
+        
+
+    # iterate window size
+    for window in range(Slim, -1, -1):
+        kernel_size =  2 * window + 1
+        if window > 0:
+            fhat = fourier_filter(fcst, kernel_size)
+            ohat = fourier_filter(obs, kernel_size)
+        else:
+            fhat = fcst
+            ohat = obs
+
+        # take a difference of two 'convoluted' fields
+        Ds = (fhat - ohat) ** 2 / (fhat ** 2 + ohat ** 2)
+        # If the denominator is exclusively small, DS is set to 0, means well-agreement.
+        Ds = np.where((fhat ** 2 + ohat ** 2) < 0.0001, 0, Ds)
+
+        # Is Ds small enough?
+        Ds_crit = alpha + (1 - alpha) * window / Slim
+        Agreement_Scales = np.where(Ds <= Ds_crit, window, Agreement_Scales)
+
+    Agreement_Scales = Agreement_Scales * ~np.isnan(fcst) * ~np.isnan(obs)
+
+    return Agreement_Scales
 
 
 
