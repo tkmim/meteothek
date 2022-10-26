@@ -10,6 +10,7 @@
 ## Prerequirement 
 - matplotlib
 - cartopy (> 0.18.0)
+- numpy
 
 ## Usage
 ```python

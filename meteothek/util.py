@@ -31,10 +31,10 @@ class timer(object):
         self.end = time.time()
         self.secs = self.end - self.start
         self.msecs = self.secs * 1000  # millisecs
-        if self.verbose and self.msecs > 1000 :
-            print(self.name, ': elapsed time: %.3f s' % (self.msecs / 1000.0) )
         if self.verbose and self.msecs > 1000 * 60 :
             print(self.name, ': elapsed time: %.3f min' % (self.msecs / 60000.0) )
+        elif self.verbose and self.msecs > 1000 :
+            print(self.name, ': elapsed time: %.3f s' % (self.msecs / 1000.0) )
         elif self.verbose :
             print(self.name, ': elapsed time: %.3f ms' % self.msecs)
 
@@ -78,7 +78,7 @@ class nlcmap(LinearSegmentedColormap):
 #:
 
 def fourier_filter(field, n, max_missing=0.25):
-    '''A wrapper function for making 2D Fourier filter convolution
+    """A wrapper function for making 2D Fourier filter convolution
 
     Parameter
     ---------
@@ -90,10 +90,10 @@ def fourier_filter(field, n, max_missing=0.25):
     Returns
     -------
     result : 2d nd-array, convolution
-    '''
+    """
 
     def convolve2DFFT(field, kernel, max_missing=0.25, verbose=False):
-        '''2D FFT convolution with NaN
+        """2D FFT convolution with NaN
 
         Parameter
         ---------
@@ -115,7 +115,7 @@ def fourier_filter(field, n, max_missing=0.25):
         Returns
         -------
         result : 2d nd-array, convolution.
-        '''
+        """
 
         assert np.ndim(field)==2, "<field> needs to be 2D."
         assert np.ndim(kernel)==2, "<kernel> needs to be 2D."
@@ -223,7 +223,7 @@ def AS(fcst, obs, Slim=np.nan, alpha=0.5):
     
     Returns
     -------
-    Agreement Scales : 2d nd-array,
+    Agreement Scales : 2d nd-array, integer, 
         Agreement scales
     """
 
@@ -266,6 +266,8 @@ def AS(fcst, obs, Slim=np.nan, alpha=0.5):
 
 def calc_ke_dct(u, v, trunc=None, type=2):
     """
+    ******** No longer maintained ********
+
     Compute spectral decomposition of kinetic energy using DCT (Denis et al. 2002, MWR)
     
     :param u: 2d-array, zonal wind field
@@ -289,6 +291,8 @@ def calc_ke_dct(u, v, trunc=None, type=2):
     
 def calc_te_dct(u, v, trunc=None, type=2):
     """
+    ******** No longer maintained ********
+    
     Compute spectral decomposition of total energy using DCT (Denis et al. 2002, MWR)
     
     :param u: 2d-array, zonal wind field
