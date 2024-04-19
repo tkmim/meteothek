@@ -10,6 +10,10 @@ import time
 import pandas as pd
 from typing import Union
 
+# set up the logger and set the logging level
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 #:
 #:   Logging and debugging
@@ -51,11 +55,11 @@ class Timer(object):
         else:
             # if verbose is False, log the elapsed time
             if self.msecs > 1000 * 60:
-                logging.info(self.name + ": elapsed time: %.3f min" % self.msecs / 60000.0)
+                logger.info(self.name + ": elapsed time: %.3f min" % self.msecs / 60000.0)
             elif self.msecs > 1000:
-                logging.info(self.name + ": elapsed time: %.3f s" % self.msecs / 1000.0)
+                logger.info(self.name + ": elapsed time: %.3f s" % self.msecs / 1000.0)
             else:
-                logging.info(self.name + ": elapsed time: %.3f ms" % self.msecs)
+                logger.info(self.name + ": elapsed time: %.3f ms" % self.msecs)
 
 
 #:
