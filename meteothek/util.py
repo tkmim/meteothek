@@ -26,6 +26,13 @@ def Flush():
 class Timer(object):
     """A function to measure the time of a block of code
 
+    Parameters
+    ----------
+    name : str
+        Name of the block to measure.
+    verbose : bool, optional
+        If True, print the elapsed time. If False, log the elapsed time. Default is True.
+
     ===== Example =====
 
     with Timer('name of the block'):
