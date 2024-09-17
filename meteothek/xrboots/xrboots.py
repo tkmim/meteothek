@@ -147,7 +147,7 @@ def bootnd(
     return forecast_smp.transpose(..., "iteration")
 
 
-def bootnd_multistage(dataset: xr.Dataset, dims: list, iterations: int, n: int, seed: int, *, replace: bool = True):
+def bootnd_multistage(dataset: xr.Dataset, dims: list, n: int, iterations: int, seed: int, *, replace: bool = True):
     """
     **This function still requires mathematical justification.**
 
