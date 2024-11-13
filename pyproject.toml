@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meteothek"
+version = "0.1a"
+dependencies = [
+"numpy",
+"xarray[complete]",
+"scipy",
+"cartopy"
+]
+requires-python = ">=3.9"
+readme = "README.md"
+description = "meteothek is a collection of functions I've used in my research."
+license = {file = "LICENSE"}
+classifiers = [
+"Development Status :: 3 - Alpha",
+"Intended Audience :: Science/Research",
+]
+
+[project.urls]
+Homepage = "https://github.com/tkmim/meteothek"
+Repository = "https://github.com/tkmim/meteothek.git"
