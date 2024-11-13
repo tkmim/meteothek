@@ -4,7 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "meteothek"
-version = "0.1a"
 dependencies = [
 "numpy",
 "xarray[complete]",
@@ -19,6 +18,10 @@ classifiers = [
 "Development Status :: 3 - Alpha",
 "Intended Audience :: Science/Research",
 ]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "meteothek.__version__"}
 
 [project.urls]
 Homepage = "https://github.com/tkmim/meteothek"
