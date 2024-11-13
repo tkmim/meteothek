@@ -11,8 +11,7 @@ from importlib.metadata import version
 from . import proj
 from .util import *
 
-__version__ = "2020.8dev0" # pip package name is pynusdas
-
+__version__ = "2020.8dev0" 
 
 # Define any global variables or constants here
 # def __version__():

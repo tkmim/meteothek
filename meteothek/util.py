@@ -29,7 +29,7 @@ class Timer(object):
     Parameters
     ----------
     name : str
-        Name of the block to measure.
+        Name of a block to be measured.
     verbose : bool, optional
         If True, print the elapsed time. If False, log the elapsed time. Default is True.
 
