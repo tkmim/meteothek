@@ -9,7 +9,7 @@ import cartopy.crs as ccrs
 
 def Regular_latlon():
     # The standard latitude-longitude based projection having an equirectanglar cooredinate.
-    # somewhat this returned projection obejct does not work with 'transform' option. In that case, use ccrs.PlateCarree() directly in a plotting code.
+    # somewhat the returned projection obejct does not work with 'transform' option. In that case, use ccrs.PlateCarree() directly in a plotting code.
     # Note on 17. Sep. 2024: the issue above might be due to using pcolorfast. pcolormesh is slow but works correctly in many cases where pcolorfast does not.
     return ccrs.PlateCarree()
 
@@ -34,5 +34,5 @@ def PolarStereo_DE():
 
 def Geodetic():
     # This is not a map projection but rather a coordinate of the Earth's surface based on WGS84 (keeping the spherical shape).
-    # The standard latitude-longitude system but accounting for spherical topology and geographical distance i.e. computationally expensive.
+    # The standard latitude-longitude system but that accounting for spherical topology and geographical distance i.e. computationally expensive.
     return ccrs.Geodetic()

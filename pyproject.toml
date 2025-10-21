@@ -8,7 +8,8 @@ dependencies = [
 "numpy",
 "xarray[complete]",
 "scipy",
-"cartopy"
+"cartopy",
+"tqdm"
 ]
 requires-python = ">=3.9"
 readme = "README.md"

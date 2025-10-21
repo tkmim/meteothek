@@ -11,7 +11,7 @@ from importlib.metadata import version
 from . import proj
 from .util import *
 
-__version__ = "2020.8dev0" 
+__version__ = "2025.10dev0" 
 
 # Define any global variables or constants here
 # def __version__():

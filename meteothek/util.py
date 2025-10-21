@@ -7,13 +7,19 @@ import sys
 import logging
 import numpy as np
 import time
-import pandas as pd
+import datetime
 from typing import Union
 
 # set up the logger and set the logging level
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
+# set up the handler 
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(levelname)s:%(filename)s: %(funcName)s: %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 #:
 #:   Logging and debugging
@@ -31,7 +37,7 @@ class Timer(object):
     name : str
         Name of a block to be measured.
     verbose : bool, optional
-        If True, print the elapsed time. If False, log the elapsed time. Default is True.
+        If True, print the elapsed time to standard output. If False, log the elapsed time. Default is True.
 
     ===== Example =====
 
@@ -39,7 +45,7 @@ class Timer(object):
         # code to measure
 
     """
-
+    
     def __init__(self, name: str, verbose=True):
         self.verbose = verbose
         self.name = name
@@ -62,40 +68,14 @@ class Timer(object):
         else:
             # if verbose is False, log the elapsed time
             if self.msecs > 1000 * 60:
-                logger.info(self.name + ": elapsed time: %.3f min" % self.msecs / 60000.0)
+                logger.info(self.name + ": elapsed time: %.3f min" % (self.msecs / 60000.0), stacklevel=2)
             elif self.msecs > 1000:
-                logger.info(self.name + ": elapsed time: %.3f s" % self.msecs / 1000.0)
+                logger.info(self.name + ": elapsed time: %.3f s" % (self.msecs / 1000.0), stacklevel=2)
             else:
-                logger.info(self.name + ": elapsed time: %.3f ms" % self.msecs)
+                logger.info(self.name + ": elapsed time: %.3f ms" % self.msecs, stacklevel=2)
 
 
 #:
 #:   Miscellaneous
 #:
 
-
-def ymdh2date(ymdh: Union[str, list]):
-    """
-    Format date string YYYYMMDDHH to datetime object.
-
-    Parameters
-    ----------
-    ymdh : str or list of str
-        Date string(s) in the format 'YYYYMMDDHH'.
-
-    Returns
-    -------
-    date : pandas.DatetimeIndex or list of pandas.DatetimeIndex
-        Datetime object(s) corresponding to the input date string(s).
-
-    """
-
-    if isinstance(ymdh, str):
-        date = pd.to_datetime(ymdh, format="%Y%m%d%H")
-    elif isinstance(ymdh, list):
-        # if ymdh is a list, convert each element to datetime object
-        date = [pd.to_datetime(str(dd), format="%Y%m%d%H") for dd in ymdh]
-    else:
-        raise TypeError("The input date must be a string or a list of strings.")
-
-    return date
