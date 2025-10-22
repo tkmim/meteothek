@@ -23,14 +23,22 @@ iterations = 1000
 seed = 123
 n = 2
 
-# Test the boot1d method
+# Test the boot1d function
 boot1d_result = xrboots.boot1d(dataset, dims[0], n, iterations, seed)
 logger.debug(boot1d_result)
 
 
-# Test the bootnd method
+# Test the bootnd_subblock
 dims = ["space", "ens"]
-bootnd_result = xrboots.bootnd(dataset, dims, (3, 4), iterations, seed)
+bootnd_result = xrboots.bootnd_subblock(dataset, dims, (3, 4), iterations, seed)
+logger.debug(bootnd_result)
+
+
+
+# Test the bootnd_subblock
+dims = {"space": 3, "ens": 4}
+iterations = 2
+bootnd_result = xrboots.bootnd(dataset, dims, iterations, seed)
 logger.debug(bootnd_result)
 
 # Assert that the bootnd result has the correct number of iterations

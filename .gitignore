@@ -32,3 +32,4 @@ env/
 # Miscellaneous
 .DS_Store
 backup/
+tests/

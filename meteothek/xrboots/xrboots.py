@@ -8,6 +8,7 @@ from meteothek import Timer
 
 # set up the logger and set the logging level
 logger = logging.getLogger(__name__)
+logger.propagate = False
 
 
 def boot1d(
@@ -66,7 +67,7 @@ def boot1d(
     return forecast_smp.transpose(..., "iteration")
 
 
-def bootnd(
+def bootnd_subblock(
     dataset: xr.core.types.T_Xarray,
     dims: list,
     ns: Union[int, list],
@@ -75,20 +76,24 @@ def bootnd(
     *,
     replace: bool = True,
 ):
-    """
-    Perform bootstrapping along n dimensions in a dataset.
+    r"""
+    Perform bootstrapping along n dimensions in a dataset by constructing a sub block in perturbation space.
 
-    This function employs a simple sampling method, with which sample clusters are chosen for each dimension and sample overlapping parts of the clusters. For example, if bootstrap is applied along dimensions A and B, both having n=5, and subsample size is 3 and 2 for each. The resulted sample will be 6 samples, which are indicated as in the following table.
+    This function employs a simple sampling method, with which sample perturbations are chosen for each dimension and a sub block in perturbation space is constructed.
+    For example, if bootstrap is applied along dimensions A and B, both having n=5, and subsample size is 3 and 2 for each.
+    One sub-sampled member thus shares the same perturbation in A with two other members, and shares the same perturbation in B with another member, forming a sub-block as illustrated below:
     ```
-    A\B | 1 | 2 | 3 | 4 | 5
-    1   |   | x |   | x |
-    2   |   |   |   |   |
-    3   |   | x |   | x |
+    A\B | 1 | 2 | 3 | 4 | 5      A\B | 2 | 4
+    1   |   | x |   | x |        1   | x | x
+    2   |   |   |   |   |        3   | x | x
+    3   |   | x |   | x |     -> 4   | x | x
     4   |   | x |   | x |
     5   |   |   |   |   |
     ```
 
-    This sampleing method represents a realistic situation that we fully utilise limited resources (e.g. using all combinations of ICs and LBCs), but the given samples would likely be correlated.
+    This method corresponds to choosing number of input parameters for each dimension and constructing an ensemble by using all combinations of these parameters.
+    This represents a situation that we fully utilise limited perturbations to make as large an ensemble as possible (e.g. you have 3 ICs and 4 LBCs and produce 12 members by using all combinations).
+    The sub-sampled members may be sistematically correlated.
 
     Parameters
     ----------
@@ -147,11 +152,10 @@ def bootnd(
     return forecast_smp.transpose(..., "iteration")
 
 
-def bootnd_multistage(dataset: xr.Dataset, dims: list, n: int, iterations: int, seed: int, *, replace: bool = True):
-    """
-    **This function still requires mathematical justification.**
+def bootnd(dataset: xr.Dataset, dims: dict, iterations: int, seed: int, *, replace: bool = True):
+    r"""
 
-    Perform multi-stage random bootstrapping along n dimensions in a dataset.
+    Perform bootstrapping along n dimensions in a dataset.
 
     ## multi-stage random sampling
     Generating a subsample cluster for each sample recursively. For the k-th dimenstion (k > 1), n_k samples are randomly drawn for each sample for the (k-1)-th dimension.
@@ -161,13 +165,10 @@ def bootnd_multistage(dataset: xr.Dataset, dims: list, n: int, iterations: int, 
     ----------
     dataset : xr.Dataset
         The input Xarray dataset.
-    dims : list
-        The list of dimensions along which to perform bootstrapping.
+    dims : dictionary
+        The dictionary containing a dimension name as key and number of samples to draw for each iteration as value.
     iterations : int
         The number of bootstrapping iterations.
-    n : int (default=4)
-        The number of samples to draw for each iteration.
-        Currently the same n for all dimensions is supported.
     seed : int (default=123)
         The seed value for random number generation.
     replace : bool (default=True)
@@ -184,22 +185,25 @@ def bootnd_multistage(dataset: xr.Dataset, dims: list, n: int, iterations: int, 
     np.random.seed(seed=seed)
     CONCAT_KWARGS = {"coords": "minimal", "compat": "override"}
 
-    def recursive_isel(dataset, dims, random_choices, n):
+    def recursive_isel(dataset, dims, random_choices):
         # recursive function to isel the dataset and combine the sampled datasets
         if len(dims) == 1:
-            return dataset.isel({dims[0]: random_choices[dims[0]]}).assign_coords({dims[0]: np.arange(n)})
+            (dim, n), = dims.items()
+            return dataset.isel({dim: random_choices[dim]}).assign_coords({dim: np.arange(n)})
         else:
+            ns = list(dims.values())
+            dims = list(dims.keys())
+            
             recursive_datasets = []
-            for i in range(n):
-                logger.debug(
-                    n, {key: values[i] if values.size > 1 else values for (key, values) in random_choices.items()}
-                )
+            for i in range(ns[0]):
+                logdict = {key: values[i] if values.size > 1 else values for (key, values) in random_choices.items()}
+                logger.debug(f"{logdict}")
+
                 recursive_datasets.append(
                     recursive_isel(
                         dataset.isel({dims[0]: [random_choices[dims[0]][i]]}).assign_coords({dims[0]: [i]}),
-                        dims[1:],
-                        {key: values[i] if values.size > 1 else values for (key, values) in random_choices.items()},
-                        n,
+                        {dim:n for dim, n in zip(dims[1:], ns[1:])},
+                        {key: values[i] if values.ndim > 1 else values for (key, values) in random_choices.items()},
                     )
                 )
 
@@ -214,16 +218,15 @@ def bootnd_multistage(dataset: xr.Dataset, dims: list, n: int, iterations: int, 
             # generate a list of random indices for each dimension
             # the number of random indices is n^(ii+1) for the ii-th dimension
             random_choices = {}
-            for jj, dim in enumerate(dims):
-                random_choices[dim] = np.random.choice(dataset[dim].size, n ** (jj + 1), replace=replace).reshape(
-                    [n] * (jj + 1)
-                )
-                print(random_choices[dim].shape)
+            tn = []
+            for jj, (dim, n) in enumerate(dims.items()):
+                tn.append(n)
+                random_choices[dim] = np.random.choice(dataset[dim].size, np.prod(tn), replace=replace).reshape(tn)
 
             for key, value in random_choices.items():
-                logger.debug(key, value)
+                logger.debug(f"{key}, {value}")
 
-            forecast_smp_list.append(recursive_isel(dataset, dims, random_choices, n))
+            forecast_smp_list.append(recursive_isel(dataset, dims, random_choices))
 
     # concatinating the bootstrapped datasets
     with Timer("bootnd: concating"):
