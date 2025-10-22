@@ -8,7 +8,7 @@ import cartopy.crs as ccrs
 
 
 def Regular_latlon():
-    # The standard latitude-longitude based projection having an equirectanglar cooredinate.
+    # The standard latitude-longitude based projection having an equirectangular coordinate.
     # somewhat the returned projection obejct does not work with 'transform' option. In that case, use ccrs.PlateCarree() directly in a plotting code.
     # Note on 17. Sep. 2024: the issue above might be due to using pcolorfast. pcolormesh is slow but works correctly in many cases where pcolorfast does not.
     return ccrs.PlateCarree()
@@ -23,7 +23,7 @@ def Lambert_D2_DE():
 
 
 def Rotated_DE():
-    # The rotated-pole projection suitable for vidualising ICON-D2 outputs.
+    # The rotated-pole projection suitable for visualising ICON-D2 outputs.
     # The pole is located at 40N, 170W.
     return ccrs.RotatedPole(pole_latitude=40, pole_longitude=-170)
 

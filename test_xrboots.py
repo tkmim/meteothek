@@ -6,7 +6,7 @@ from meteothek.xrboots import *
 # set up the logger and set the logging level
 logger = logging.getLogger(__name__)
 
-# showin DEBUG level messages
+# showing DEBUG level messages
 logging.basicConfig(level=logging.DEBUG)  # , format='%(levelname)s - %(name)s - %(asctime)s - %(message)s')
 
 # showing messages in and above the INFO level in pynus.decode

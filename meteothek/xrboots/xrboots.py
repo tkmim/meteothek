@@ -93,7 +93,7 @@ def bootnd_subblock(
 
     This method corresponds to choosing number of input parameters for each dimension and constructing an ensemble by using all combinations of these parameters.
     This represents a situation that we fully utilise limited perturbations to make as large an ensemble as possible (e.g. you have 3 ICs and 4 LBCs and produce 12 members by using all combinations).
-    The sub-sampled members may be sistematically correlated.
+    The sub-sampled members may be systematically correlated.
 
     Parameters
     ----------
@@ -141,8 +141,8 @@ def bootnd_subblock(
                 dataset.isel(**random_choices).assign_coords({key: np.arange(n) for n, key in zip(ns, dims)})
             )
 
-    # concatinating the bootstrapped datasets
-    with Timer("bootnd: concating"):
+    # concatenating the bootstrapped datasets
+    with Timer("bootnd: concateng"):
         forecast_smp = xr.concat(forecast_smp_list, dim="iteration", **CONCAT_KWARGS)
     forecast_smp["iteration"] = np.arange(iterations)
 
@@ -228,8 +228,8 @@ def bootnd(dataset: xr.Dataset, dims: dict, iterations: int, seed: int, *, repla
 
             forecast_smp_list.append(recursive_isel(dataset, dims, random_choices))
 
-    # concatinating the bootstrapped datasets
-    with Timer("bootnd: concating"):
+    # concatenating the bootstrapped datasets
+    with Timer("bootnd: concateng"):
         forecast_smp = xr.concat(forecast_smp_list, dim="iteration", **CONCAT_KWARGS)
     forecast_smp["iteration"] = np.arange(iterations)
 
