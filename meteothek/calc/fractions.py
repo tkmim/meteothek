@@ -82,6 +82,8 @@ def convolve2Dimage(field, kernel, max_missing=0.25, method="integral", verbose=
 
     # Normalise by dividing with the fraction of valid points in a kernel
     # Ensure the result is computed using only valid grid points when the kernel window contains missing values.
+    # Replace zero values with NaN to avoid divide-by-zero warning
+    valid_conv = np.where(valid_conv == 0, np.nan, valid_conv)
     result = result / valid_conv
 
     # Mask with <valid_threshold>. Values are kept only when a window kernel contains enough valid grid points.
