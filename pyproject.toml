@@ -6,9 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "meteothek"
 dependencies = [
 "numpy",
-"xarray[complete]",
+"xarray",
 "scipy",
-"cartopy",
 "tqdm"
 ]
 requires-python = ">=3.9"
